@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <meta name="theme-color" content="#EAF4FF"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <title>Futbol Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #EAF4FF;
+      --surface: #ffffff;
+      --border: rgba(100,160,220,0.2);
+      --text: #1a2a3a;
+      --text2: #5a7a9a;
+      --accent: #3a8fd4;
+      --accent-light: #cce5f8;
+      --accent-dark: #1a5a8a;
+      --success-bg: #e4f5d0;
+      --fail-bg: #fde8e8;
+      --radius: 14px;
+      --radius-sm: 9px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1a26;
+        --surface: #132030;
+        --border: rgba(100,160,220,0.15);
+        --text: #d0e8f8;
+        --text2: #6a9ab8;
+        --accent: #4aa0e0;
+        --accent-light: #0d2a40;
+        --accent-dark: #a0d0f0;
+        --success-bg: #0e2205;
+        --fail-bg: #2a0a0a;
+      }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 76px; }
+    header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 14px 20px 12px; position: sticky; top: 0; z-index: 10; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-title { font-size: 19px; font-weight: 700; color: var(--accent-dark); letter-spacing: -0.3px; }
+    .header-sub { font-size: 11px; color: var(--text2); }
+    nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 0.5px solid var(--border); display: flex; padding: 8px 0 18px; z-index: 10; }
+    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9px; color: var(--text2); background: none; border: none; cursor: pointer; padding: 6px 0; transition: color .15s; }
+    .nav-btn.active { color: var(--accent); font-weight: 500; }
+    .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+    main { padding: 14px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .card-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .metric { background: var(--accent-light); border-radius: var(--radius-sm); padding: 12px 14px; }
+    .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+    .metric-val { font-size: 26px; font-weight: 700; color: var(--accent-dark); line-height: 1; }
+    .metric-delta { font-size: 11px; color: #3B6D11; margin-top: 3px; }
+    .input-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    input[type="number"] { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 15px; color: var(--text); -webkit-appearance: none; outline: none; }
+    input:focus { border-color: var(--accent); }
+    .btn { background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: opacity .15s; }
+    .btn:active { opacity: 0.8; }
+    .day-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-top: 0.5px solid var(--border); }
+    .day-row:first-of-type { border-top: none; }
+    .day-info { flex: 1; cursor: pointer; }
+    .day-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .day-tag { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .expand-hint { font-size: 10px; color: var(--accent); margin-top: 3px; }
+    .day-exercises { display: none; margin-top: 8px; background: var(--bg); border-radius: var(--radius-sm); padding: 10px 12px; }
+    .day-exercises.open { display: block; }
+    .ex-item { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-top: 0.5px solid var(--border); font-size: 12px; gap: 8px; }
+    .ex-item:first-child { border-top: none; }
+    .ex-item-name { color: var(--text); flex: 1; }
+    .ex-item-det { color: var(--text2); white-space: nowrap; font-size: 11px; }
+    .check { width: 32px; height: 32px; border-radius: 10px; border: 1.5px solid var(--border); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; margin-top: 2px; }
+    .check.done { background: var(--success-bg); border-color: #3B6D11; }
+    .check svg { opacity: 0; transition: opacity .15s; }
+    .check.done svg { opacity: 1; }
+    .progress-row { margin-top: 14px; }
+    .progress-label-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+    .progress-track { background: var(--bg); border-radius: 6px; height: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width .4s; }
+    .bar-chart { margin-top: 4px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .bar-week { font-size: 11px; color: var(--text2); width: 22px; text-align: right; flex-shrink: 0; }
+    .bar-track { flex: 1; background: var(--bg); border-radius: 4px; height: 14px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width .5s; }
+    .bar-val { font-size: 11px; color: var(--text2); width: 36px; flex-shrink: 0; text-align: right; }
+    .toast { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); background: var(--accent-dark); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity .3s; z-index: 100; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+
+    /* DIETA */
+    .comida-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+    .comida-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .comida-titulo { font-size: 14px; font-weight: 600; color: var(--text); }
+    .comida-hora { font-size: 11px; color: var(--text2); }
+    .comida-items { display: flex; flex-direction: column; gap: 6px; }
+    .comida-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 0.5px solid var(--border); }
+    .comida-item:first-child { border-top: none; }
+    .comida-item-label { flex: 1; font-size: 13px; color: var(--text); }
+    .comida-item-tip { font-size: 11px; color: var(--text2); }
+    .toggle-comida {
+      display: flex; border-radius: 8px; overflow: hidden;
+      border: 1px solid var(--border); flex-shrink: 0;
+    }
+    .toggle-btn {
+      padding: 5px 10px; font-size: 11px; font-weight: 600;
+      border: none; cursor: pointer; transition: all .15s;
+      background: none; color: var(--text2);
+    }
+    .toggle-btn.ok { background: var(--success-bg); color: #27500A; }
+    .toggle-btn.mal { background: var(--fail-bg); color: #A32D2D; }
+    .dieta-resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .dieta-stat { background: var(--accent-light); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
+    .dieta-stat-val { font-size: 20px; font-weight: 700; color: var(--accent-dark); }
+    .dieta-stat-label { font-size: 10px; color: var(--text2); margin-top: 2px; }
+    .dieta-tip { background: var(--accent-light); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; color: var(--text2); line-height: 1.6; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div class="header-left">
+      <!-- Pelota de futbol con hexagonos reales -->
+      <svg width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="60" r="56" fill="#cce5f8" stroke="#3a8fd4" stroke-width="3.5"/>
+        <!-- Pentagono central negro -->
+        <polygon points="60,30 78,44 72,64 48,64 42,44" fill="#1a5a8a" stroke="#EAF4FF" stroke-width="2.5" stroke-linejoin="round"/>
+        <!-- Hexagonos blancos alrededor -->
+        <polygon points="60,30 42,44 34,26 50,14 70,14 86,26 78,44" fill="none" stroke="#1a5a8a" stroke-width="2" stroke-linejoin="round"/>
+        <polygon points="42,44 24,44 18,62 32,76 48,64" fill="white" stroke="#1a5a8a" stroke-width="2" stroke-linejoin="round"/>
+        <polygon points="72,64 78,44 96,44 102,62 88,76" fill="white" stroke="#1a5a8a" stroke-width="2" stroke-linejoin="round"/>
+        <polygon points="48,64 32,76 38,96 60,100 82,96 88,76 72,64" fill="none" stroke="#1a5a8a" stroke-width="2" stroke-linejoin="round"/>
+        <!-- Costuras -->
+        <path d="M60,30 L60,14" stroke="#3a8fd4" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M42,44 L34,26" stroke="#3a8fd4" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M78,44 L86,26" stroke="#3a8fd4" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M48,64 L32,76" stroke="#3a8fd4" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M72,64 L88,76" stroke="#3a8fd4" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M60,100 L60,116" stroke="#3a8fd4" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="header-title">Futbol Tracker</span>
+    </div>
+    <span class="header-sub" id="today-label"></span>
+  </div>
+</header>
+
+<main>
+
+  <!-- HOY -->
+  <div id="p-hoy" class="panel active">
+    <div class="metric-grid">
+      <div class="metric">
+        <div class="metric-label">Peso actual</div>
+        <div class="metric-val" id="peso-actual">—</div>
+        <div class="metric-delta" id="peso-delta"></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Km semana</div>
+        <div class="metric-val" id="km-semana">—</div>
+        <div class="metric-delta" id="km-delta"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Registrar peso</div>
+      <div class="input-row">
+        <input type="number" id="peso-input" placeholder="76.0" step="0.1" min="40" max="200"/>
+        <button class="btn" onclick="guardarPeso()">Guardar</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Km corridos hoy</div>
+      <div class="input-row">
+        <input type="number" id="km-input" placeholder="3.5" step="0.1" min="0"/>
+        <button class="btn" onclick="guardarKm()">+ Sumar</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Entrenamiento de hoy</div>
+      <div id="hoy-entreno"></div>
+    </div>
+  </div>
+
+  <!-- SEMANA -->
+  <div id="p-semana" class="panel">
+    <div class="card">
+      <div class="card-title">Esta semana · tocá un día para ver los ejercicios</div>
+      <div id="semana-days"></div>
+      <div class="progress-row">
+        <div class="progress-label-row">
+          <span id="semana-count">0 de 6 días</span>
+          <span id="semana-pct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="semana-bar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIETA -->
+  <div id="p-dieta" class="panel">
+    <div class="dieta-resumen">
+      <div class="dieta-stat">
+        <div class="dieta-stat-val" id="dieta-ok">—</div>
+        <div class="dieta-stat-label">Bien hoy</div>
+      </div>
+      <div class="dieta-stat">
+        <div class="dieta-stat-val" id="dieta-semana-ok">—</div>
+        <div class="dieta-stat-label">Esta semana</div>
+      </div>
+      <div class="dieta-stat">
+        <div class="dieta-stat-val" id="dieta-racha">—</div>
+        <div class="dieta-stat-label">Días 4+ bien</div>
+      </div>
+    </div>
+
+    <div class="comida-card">
+      <div class="comida-head">
+        <span class="comida-titulo">Desayuno</span>
+        <span class="comida-hora">7:00 – 8:30</span>
+      </div>
+      <div class="comida-items" id="comida-desayuno">
+        <div class="comida-item">
+          <span class="comida-item-label">Huevos (2–3) + tostada o avena</span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'desayuno','proteina','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'desayuno','proteina','mal')">✗</button>
+          </div>
+        </div>
+        <div class="comida-item">
+          <span class="comida-item-label">Fruta o jugo natural</span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'desayuno','fruta','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'desayuno','fruta','mal')">✗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comida-card">
+      <div class="comida-head">
+        <span class="comida-titulo">Snack mañana</span>
+        <span class="comida-hora">10:00 – 11:00</span>
+      </div>
+      <div class="comida-items">
+        <div class="comida-item">
+          <span class="comida-item-label">Maní, nueces o fruta <span class="comida-item-tip">(no facturas)</span></span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'snack_manana','snack','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'snack_manana','snack','mal')">✗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comida-card">
+      <div class="comida-head">
+        <span class="comida-titulo">Almuerzo</span>
+        <span class="comida-hora">12:30 – 14:00</span>
+      </div>
+      <div class="comida-items">
+        <div class="comida-item">
+          <span class="comida-item-label">Proteína (pollo, carne, pescado)</span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'almuerzo','proteina','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'almuerzo','proteina','mal')">✗</button>
+          </div>
+        </div>
+        <div class="comida-item">
+          <span class="comida-item-label">Carbohidrato (arroz, papa, pasta)</span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'almuerzo','carbo','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'almuerzo','carbo','mal')">✗</button>
+          </div>
+        </div>
+        <div class="comida-item">
+          <span class="comida-item-label">Verdura o ensalada</span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'almuerzo','verdura','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'almuerzo','verdura','mal')">✗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comida-card">
+      <div class="comida-head">
+        <span class="comida-titulo">Merienda</span>
+        <span class="comida-hora">17:00 – 18:00</span>
+      </div>
+      <div class="comida-items">
+        <div class="comida-item">
+          <span class="comida-item-label">Proteína liviana <span class="comida-item-tip">(huevo, atún, yogur)</span></span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'merienda','proteina','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'merienda','proteina','mal')">✗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comida-card">
+      <div class="comida-head">
+        <span class="comida-titulo">Cena</span>
+        <span class="comida-hora">20:00 – 22:00</span>
+      </div>
+      <div class="comida-items">
+        <div class="comida-item">
+          <span class="comida-item-label">Proteína magra (pollo, huevo, pescado)</span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'cena','proteina','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'cena','proteina','mal')">✗</button>
+          </div>
+        </div>
+        <div class="comida-item">
+          <span class="comida-item-label">Verdura o ensalada grande</span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'cena','verdura','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'cena','verdura','mal')">✗</button>
+          </div>
+        </div>
+        <div class="comida-item">
+          <span class="comida-item-label">Sin carbohidrato pesado <span class="comida-item-tip">(o muy poco)</span></span>
+          <div class="toggle-comida">
+            <button class="toggle-btn" onclick="toggleComida(this,'cena','sincarbo','ok')">OK</button>
+            <button class="toggle-btn" onclick="toggleComida(this,'cena','sincarbo','mal')">✗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dieta-tip" id="dieta-mensaje">Registrá tus comidas para ver tu puntaje del día.</div>
+  </div>
+
+  <!-- PROGRESO -->
+  <div id="p-progreso" class="panel">
+    <div class="card">
+      <div class="card-title">Peso por semana (kg)</div>
+      <div class="bar-chart" id="chart-peso"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Km con la perra por semana</div>
+      <div class="bar-chart" id="chart-km"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Días completados por semana</div>
+      <div class="bar-chart" id="chart-dias"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Dieta: checks buenos por semana</div>
+      <div class="bar-chart" id="chart-dieta"></div>
+    </div>
+  </div>
+
+</main>
+
+<nav>
+  <button class="nav-btn active" onclick="switchTab('hoy',this)">
+    <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="4" fill="currentColor"/><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/></svg></span>Hoy
+  </button>
+  <button class="nav-btn" onclick="switchTab('semana',this)">
+    <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 3v4M15 3v4M3 9h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>Semana
+  </button>
+  <button class="nav-btn" onclick="switchTab('dieta',this)">
+    <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 6h14M4 11h14M4 16h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>Dieta
+  </button>
+  <button class="nav-btn" onclick="switchTab('progreso',this)">
+    <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 17l5-5 4 3 7-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Progreso
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbw5w7YmqW-Px7x0ZcCaBtlYCWazhpbl8G6dBJD3LpDvS-2NrD_6ZRW8AqS6Uw6fyENjnw/exec';
+
+const DIAS = [
+  { nombre:'Lunes', tag:'Explosividad + Core', ejercicios:[
+    {n:'Calentamiento: skipping + movilidad caderas',d:'5 min'},
+    {n:'Sprints cortos al 100% (10–15 m)',d:'6 × sprint · 45" descanso'},
+    {n:'Arranque desde el piso → sprint',d:'5 × 10 m · 1 min descanso'},
+    {n:'Sentadilla con salto explosivo',d:'4 × 6'},
+    {n:'Zancada explosiva lateral alternada',d:'3 × 8 c/lado'},
+    {n:'Mountain climbers',d:'3 × 30 seg'},
+    {n:'Elevaciones de piernas acostado',d:'3 × 12'},
+    {n:'Elongar cuádriceps derecho',d:'5 min'}
+  ]},
+  { nombre:'Martes', tag:'Entrenamiento con el equipo', ejercicios:[
+    {n:'Entrenamiento con el equipo',d:'Jugá a fondo'},
+    {n:'No agregar ejercicios extra',d:'—'}
+  ]},
+  { nombre:'Miércoles', tag:'Cardio + Tren superior', ejercicios:[
+    {n:'Trote suave con la perra',d:'10 min'},
+    {n:'Fartlek: 1 min rápido / 2 min suave',d:'× 5 veces'},
+    {n:'Trote suave de cierre',d:'5 min'},
+    {n:'Flexiones estándar',d:'4 × 10'},
+    {n:'Fondos en silla (tríceps)',d:'3 × 12'},
+    {n:'Superman (espalda baja)',d:'3 × 12'},
+    {n:'Plancha frontal',d:'3 × 30 seg'}
+  ]},
+  { nombre:'Jueves', tag:'Fuerza funcional', ejercicios:[
+    {n:'Sentadillas lentas (3 seg bajando)',d:'4 × 10'},
+    {n:'Remo invertido con mesa',d:'3 × 10'},
+    {n:'Flexión pike (hombros)',d:'3 × 8'},
+    {n:'Puente de glúteos',d:'3 × 15'},
+    {n:'Plancha lateral',d:'2 × 20 seg c/lado'}
+  ]},
+  { nombre:'Viernes', tag:'Recuperación activa', ejercicios:[
+    {n:'Trote suave con la perra',d:'15–20 min'},
+    {n:'Flexiones con palmada',d:'3 × 6'},
+    {n:'Elongaciones generales',d:'10 min'}
+  ]},
+  { nombre:'Sábado', tag:'Partido', ejercicios:[
+    {n:'Precalentamiento antes del partido',d:'Skipping + movilidad · 10 min'},
+    {n:'Fútbol 7',d:'A full'}
+  ]}
+];
+
+const NOMBRES_DIA = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+let state = { peso:[], km:[], entrenos:[], dieta:{} };
+
+function hoy() { return new Date().toISOString().split('T')[0]; }
+
+function semanaKey(fecha) {
+  const d = new Date(fecha);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() + 1 - day);
+  return d.toISOString().split('T')[0];
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+async function api(method, params) {
+  try {
+    if (method === 'POST') {
+      const r = await fetch(API_URL, { method:'POST', body:JSON.stringify(params) });
+      return await r.json();
+    } else {
+      const qs = Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+      const r = await fetch(API_URL+'?'+qs);
+      return await r.json();
+    }
+  } catch(e) { showToast('Sin conexión, guardado local'); return null; }
+}
+
+async function cargarDatos() {
+  const [peso,km,entrenos,dieta] = await Promise.all([
+    api('GET',{action:'getPeso'}),
+    api('GET',{action:'getCardio'}),
+    api('GET',{action:'getEntrenos'}),
+    api('GET',{action:'getDieta'})
+  ]);
+  if(peso) state.peso=peso;
+  if(km) state.km=km;
+  if(entrenos) state.entrenos=entrenos;
+  if(dieta && Array.isArray(dieta)) {
+    dieta.forEach(r => {
+      if(!state.dieta[r.fecha]) state.dieta[r.fecha]={};
+      state.dieta[r.fecha][r.comida+'_'+r.item] = r.valor;
+    });
+  }
+  renderAll();
+  restoreDietaUI();
+}
+
+function renderAll() { renderHoy(); renderSemana(); renderProgreso(); renderDietaResumen(); }
+
+function exHTML(ejercicios) {
+  return ejercicios.map(e=>`<div class="ex-item"><span class="ex-item-name">${e.n}</span><span class="ex-item-det">${e.d}</span></div>`).join('');
+}
+
+function toggleEx(id, event) {
+  if(event) event.stopPropagation();
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('open');
+}
+
+function checkSVG() {
+  return `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="#27500A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function renderHoy() {
+  document.getElementById('today-label').textContent =
+    NOMBRES_DIA[new Date().getDay()] + ' ' + new Date().toLocaleDateString('es-AR');
+
+  const ultPeso = state.peso.length ? state.peso[state.peso.length-1].peso : null;
+  const antPeso = state.peso.length > 1 ? state.peso[state.peso.length-2].peso : null;
+  document.getElementById('peso-actual').textContent = ultPeso ? parseFloat(ultPeso).toFixed(1) : '—';
+  if(ultPeso && antPeso) {
+    const diff = (parseFloat(ultPeso)-parseFloat(antPeso)).toFixed(1);
+    document.getElementById('peso-delta').textContent = (diff>0?'+':'')+diff+' kg';
+    document.getElementById('peso-delta').style.color = diff<=0 ? '#3B6D11' : '#A32D2D';
+  }
+
+  const semK = semanaKey(hoy());
+  const kmSemana = state.km.filter(r=>semanaKey(r.fecha)===semK).reduce((s,r)=>s+parseFloat(r.km),0);
+  document.getElementById('km-semana').textContent = kmSemana.toFixed(1)+' km';
+
+  const diaHoy = DIAS.find(d=>d.nombre===NOMBRES_DIA[new Date().getDay()]);
+  const hoyCont = document.getElementById('hoy-entreno');
+  if(diaHoy) {
+    const completadoHoy = state.entrenos.some(e=>e.fecha===hoy()&&e.dia===diaHoy.nombre&&e.completado===true);
+    hoyCont.innerHTML = `
+      <div class="day-row" style="border-top:none">
+        <div class="day-info" onclick="toggleEx('hoy-ex',event)">
+          <div class="day-name">${diaHoy.nombre}</div>
+          <div class="day-tag">${diaHoy.tag}</div>
+          <div class="expand-hint">Tocar para ver ejercicios</div>
+          <div class="day-exercises" id="hoy-ex">${exHTML(diaHoy.ejercicios)}</div>
+        </div>
+        <button class="check ${completadoHoy?'done':''}" onclick="toggleHoyEntreno(this,'${diaHoy.nombre}',event)">${checkSVG()}</button>
+      </div>`;
+  } else {
+    hoyCont.innerHTML = '<div style="font-size:13px;color:var(--text2);padding:4px 0">Hoy es descanso. Bien merecido.</div>';
+  }
+}
+
+async function toggleHoyEntreno(btn, dia, event) {
+  event.stopPropagation();
+  btn.classList.toggle('done');
+  const completado = btn.classList.contains('done');
+  await api('POST',{action:'saveEntreno',fecha:hoy(),dia,completado});
+  const idx = state.entrenos.findIndex(e=>e.fecha===hoy()&&e.dia===dia);
+  if(idx>=0) state.entrenos[idx].completado=completado;
+  else state.entrenos.push({fecha:hoy(),dia,completado});
+  renderSemana();
+  showToast(completado?'Entreno marcado':'Desmarcado');
+}
+
+function renderSemana() {
+  const cont = document.getElementById('semana-days');
+  const semK = semanaKey(hoy());
+  cont.innerHTML = '';
+  let done = 0;
+  DIAS.forEach((d,i) => {
+    const completado = state.entrenos.some(e=>semanaKey(e.fecha)===semK&&e.dia===d.nombre&&e.completado===true);
+    if(completado) done++;
+    const exId = 'sem-ex-'+i;
+    cont.innerHTML += `
+      <div class="day-row">
+        <div class="day-info" onclick="toggleEx('${exId}',event)">
+          <div class="day-name">${d.nombre}</div>
+          <div class="day-tag">${d.tag}</div>
+          <div class="expand-hint">Tocar para ver ejercicios</div>
+          <div class="day-exercises" id="${exId}">${exHTML(d.ejercicios)}</div>
+        </div>
+        <button class="check ${completado?'done':''}" onclick="toggleSemana(this,'${d.nombre}',event)">${checkSVG()}</button>
+      </div>`;
+  });
+  const pct = Math.round(done/DIAS.length*100);
+  document.getElementById('semana-bar').style.width = pct+'%';
+  document.getElementById('semana-count').textContent = done+' de '+DIAS.length+' días';
+  document.getElementById('semana-pct').textContent = pct+'%';
+}
+
+async function toggleSemana(btn, dia, event) {
+  event.stopPropagation();
+  btn.classList.toggle('done');
+  const completado = btn.classList.contains('done');
+  await api('POST',{action:'saveEntreno',fecha:hoy(),dia,completado});
+  const idx = state.entrenos.findIndex(e=>e.fecha===hoy()&&e.dia===dia);
+  if(idx>=0) state.entrenos[idx].completado=completado;
+  else state.entrenos.push({fecha:hoy(),dia,completado});
+  renderSemana();
+  renderHoy();
+  showToast(completado?'Marcado':'Desmarcado');
+}
+
+function toggleComida(btn, comida, item, valor) {
+  const par = btn.parentElement;
+  par.querySelectorAll('.toggle-btn').forEach(b => {
+    b.classList.remove('ok','mal');
+  });
+  btn.classList.add(valor);
+
+  if(!state.dieta[hoy()]) state.dieta[hoy()]={};
+  state.dieta[hoy()][comida+'_'+item] = valor;
+
+  renderDietaResumen();
+  api('POST',{action:'saveDieta',fecha:hoy(),comida,item,valor});
+}
+
+function restoreDietaUI() {
+  const d = state.dieta[hoy()];
+  if(!d) return;
+  document.querySelectorAll('.toggle-comida').forEach(par => {
+    const btnOk  = par.querySelector('.toggle-btn:first-child');
+    const btnMal = par.querySelector('.toggle-btn:last-child');
+    const onclickOk = btnOk.getAttribute('onclick');
+    const m = onclickOk.match(/toggleComida\(this,'([^']+)','([^']+)'/);
+    if(!m) return;
+    const key = m[1]+'_'+m[2];
+    if(d[key]==='ok')  { btnOk.classList.add('ok'); }
+    if(d[key]==='mal') { btnMal.classList.add('mal'); }
+  });
+}
+
+function renderDietaResumen() {
+  const d = state.dieta[hoy()] || {};
+  const vals = Object.values(d);
+  const totalHoy = vals.length;
+  const okHoy = vals.filter(v=>v==='ok').length;
+
+  document.getElementById('dieta-ok').textContent = totalHoy ? okHoy+'/'+totalHoy : '—';
+
+  const semK = semanaKey(hoy());
+  let okSemana = 0;
+  let diasBuenos = 0;
+  const diasContados = new Set();
+
+  Object.entries(state.dieta).forEach(([fecha, items]) => {
+    if(semanaKey(fecha) !== semK) return;
+    const vs = Object.values(items);
+    const okCount = vs.filter(v=>v==='ok').length;
+    okSemana += okCount;
+    if(!diasContados.has(fecha)) {
+      diasContados.add(fecha);
+      if(okCount >= 4) diasBuenos++;
+    }
+  });
+
+  document.getElementById('dieta-semana-ok').textContent = okSemana || '—';
+  document.getElementById('dieta-racha').textContent = diasBuenos || '—';
+
+  const msgs = [
+    'Registrá tus comidas para ver tu puntaje del día.',
+    'Arranque del día. Completá el resto.',
+    'Vas bien. El snack y la cena son clave.',
+    'Buen día. La cena define si cerras bien.',
+    'Excelente día de dieta. Así se baja la panza.',
+    'Día perfecto. El cuerpo te lo agradece.',
+  ];
+  const idx = Math.min(okHoy, msgs.length-1);
+  document.getElementById('dieta-mensaje').textContent = msgs[idx];
+}
+
+function renderProgreso() {
+  const semanas = {};
+  state.peso.forEach(r=>{ const k=semanaKey(r.fecha); if(!semanas[k]) semanas[k]={peso:[],km:0,dias:0,dietaOk:0}; semanas[k].peso.push(parseFloat(r.peso)); });
+  state.km.forEach(r=>{ const k=semanaKey(r.fecha); if(!semanas[k]) semanas[k]={peso:[],km:0,dias:0,dietaOk:0}; semanas[k].km+=parseFloat(r.km); });
+  state.entrenos.forEach(r=>{ if(r.completado){ const k=semanaKey(r.fecha); if(!semanas[k]) semanas[k]={peso:[],km:0,dias:0,dietaOk:0}; semanas[k].dias++; } });
+  Object.entries(state.dieta).forEach(([fecha,items])=>{ const k=semanaKey(fecha); if(!semanas[k]) semanas[k]={peso:[],km:0,dias:0,dietaOk:0}; semanas[k].dietaOk+=Object.values(items).filter(v=>v==='ok').length; });
+
+  const keys = Object.keys(semanas).sort();
+  const maxPeso   = Math.max(...keys.map(k=>semanas[k].peso.length?Math.max(...semanas[k].peso):0))||1;
+  const maxKm     = Math.max(...keys.map(k=>semanas[k].km))||1;
+  const maxDieta  = Math.max(...keys.map(k=>semanas[k].dietaOk))||1;
+  const empty = '<div style="font-size:12px;color:var(--text2)">Sin datos todavía</div>';
+
+  document.getElementById('chart-peso').innerHTML = keys.length ? keys.map((k,i)=>{
+    const p=semanas[k].peso; const val=p.length?(p.reduce((a,b)=>a+b,0)/p.length).toFixed(1):'—'; const pct=p.length?Math.round((parseFloat(val)/maxPeso)*100):0;
+    return `<div class="bar-row"><span class="bar-week">S${i+1}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:#3a8fd4"></div></div><span class="bar-val">${val}</span></div>`;
+  }).join('') : empty;
+
+  document.getElementById('chart-km').innerHTML = keys.length ? keys.map((k,i)=>{
+    const val=semanas[k].km.toFixed(1); const pct=Math.round((semanas[k].km/maxKm)*100);
+    return `<div class="bar-row"><span class="bar-week">S${i+1}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:#1D9E75"></div></div><span class="bar-val">${val}</span></div>`;
+  }).join('') : empty;
+
+  document.getElementById('chart-dias').innerHTML = keys.length ? keys.map((k,i)=>{
+    const val=Math.min(semanas[k].dias,6); const pct=Math.round((val/6)*100);
+    return `<div class="bar-row"><span class="bar-week">S${i+1}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:#7ab8e8"></div></div><span class="bar-val">${val}/6</span></div>`;
+  }).join('') : empty;
+
+  document.getElementById('chart-dieta').innerHTML = keys.length ? keys.map((k,i)=>{
+    const val=semanas[k].dietaOk; const pct=Math.round((val/maxDieta)*100);
+    return `<div class="bar-row"><span class="bar-week">S${i+1}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:#3B6D11"></div></div><span class="bar-val">${val}</span></div>`;
+  }).join('') : empty;
+}
+
+async function guardarPeso() {
+  const v = parseFloat(document.getElementById('peso-input').value);
+  if(isNaN(v)||v<40||v>200){showToast('Peso inválido');return;}
+  document.getElementById('peso-input').value='';
+  state.peso.push({fecha:hoy(),peso:v}); renderAll(); showToast('Peso guardado');
+  await api('POST',{action:'savePeso',fecha:hoy(),peso:v});
+}
+
+async function guardarKm() {
+  const v = parseFloat(document.getElementById('km-input').value);
+  if(isNaN(v)||v<=0){showToast('Km inválido');return;}
+  document.getElementById('km-input').value='';
+  state.km.push({fecha:hoy(),km:v}); renderAll(); showToast(v.toFixed(1)+' km sumados');
+  await api('POST',{action:'saveKm',fecha:hoy(),km:v});
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('p-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+cargarDatos();
+</script>
+</body>
+</html>
